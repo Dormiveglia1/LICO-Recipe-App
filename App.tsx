@@ -1624,6 +1624,20 @@ export default function App() {
     }
   };
   const formattedTime = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  const adjustTimerPart = (part: "minutes" | "seconds", delta: number) => {
+    if (running) return;
+    setTimerFinished(false);
+    setSeconds((current) => {
+      const minutes = Math.floor(current / 60);
+      const secondPart = current % 60;
+      if (part === "minutes") {
+        return Math.max(0, Math.min(180, minutes + delta)) * 60 + secondPart;
+      }
+      const nextSeconds = (secondPart + delta + 60) % 60;
+      setSecondWheelIndex(60 + nextSeconds);
+      return minutes * 60 + nextSeconds;
+    });
+  };
   const toggleTimer = async () => {
     if (running) return setRunning(false);
     if (!seconds) return Alert.alert("先设定时间", "滚动转轮设置至少 1 秒。");
@@ -2904,60 +2918,65 @@ export default function App() {
         </Text>
       </View>
       {!running && <View style={styles.quickTimerRow}>{[3, 5, 10, 15, 20, 30].map((minutes) => <Pressable key={minutes} onPress={() => { setTimerFinished(false); setTimerRecipe(null); setSeconds(minutes * 60); setSecondWheelIndex(60); }} style={[styles.quickTimer, { backgroundColor: tone.accent }]}><Text style={{ color: tone.orange }}>{minutes} 分</Text></Pressable>)}</View>}
-      <View
-        style={[
-          styles.wheelCard,
-          { backgroundColor: tone.card, opacity: running ? 0.58 : 1 },
-        ]}
-      >
-        <View style={styles.wheelColumn}>
-          <Text style={[styles.wheelLabel, { color: tone.muted }]}>分钟</Text>
-          <Picker
-            enabled={!running}
-            selectedValue={Math.floor(seconds / 60)}
-            onValueChange={(minutes) => {
-              setRunning(false);
-              setSeconds(Number(minutes) * 60 + (seconds % 60));
-            }}
-            itemStyle={{ color: tone.ink, fontSize: 22 }}
-            style={styles.wheel}
-          >
-            {Array.from({ length: 181 }, (_, value) => (
-              <Picker.Item
-                key={value}
-                label={`${value}`}
-                value={value}
-                color={tone.ink}
-              />
-            ))}
-          </Picker>
+      {Platform.OS === "web" ? (
+        <View style={[styles.webTimerCard, { backgroundColor: tone.card, opacity: running ? 0.58 : 1 }]}>
+          {(["minutes", "seconds"] as const).map((part) => {
+            const value = part === "minutes" ? Math.floor(seconds / 60) : seconds % 60;
+            return (
+              <View key={part} style={styles.webTimerStepper}>
+                <Text style={[styles.wheelLabel, { color: tone.muted }]}>{part === "minutes" ? "分钟" : "秒"}</Text>
+                <View style={styles.webTimerButtons}>
+                  <Pressable disabled={running} onPress={() => adjustTimerPart(part, -1)} style={[styles.webTimerButton, { backgroundColor: tone.accent }]}><Text style={[styles.webTimerButtonText, { color: tone.ink }]}>−</Text></Pressable>
+                  <Text style={[styles.webTimerValue, { color: tone.ink }]}>{String(value).padStart(2, "0")}</Text>
+                  <Pressable disabled={running} onPress={() => adjustTimerPart(part, 1)} style={[styles.webTimerButton, { backgroundColor: tone.accent }]}><Text style={[styles.webTimerButtonText, { color: tone.ink }]}>＋</Text></Pressable>
+                </View>
+                <Text style={[styles.webTimerTip, { color: tone.muted }]}>{part === "seconds" ? "59 后回到 00" : "轻点调整"}</Text>
+              </View>
+            );
+          })}
         </View>
-        <View style={styles.wheelDivider} />
-        <View style={styles.wheelColumn}>
-          <Text style={[styles.wheelLabel, { color: tone.muted }]}>秒</Text>
-          <Picker
-            enabled={!running}
-            selectedValue={secondWheelIndex}
-            onValueChange={(value) => {
-              const wheelValue = Number(value);
-              setRunning(false);
-              setSecondWheelIndex(wheelValue);
-              setSeconds(Math.floor(seconds / 60) * 60 + (wheelValue % 60));
-            }}
-            itemStyle={{ color: tone.ink, fontSize: 22 }}
-            style={styles.wheel}
-          >
-            {Array.from({ length: 180 }, (_, value) => (
-              <Picker.Item
-                key={value}
-                label={`${value % 60}`}
-                value={value}
-                color={tone.ink}
-              />
-            ))}
-          </Picker>
+      ) : (
+        <View
+          style={[
+            styles.wheelCard,
+            { backgroundColor: tone.card, opacity: running ? 0.58 : 1 },
+          ]}
+        >
+          <View style={styles.wheelColumn}>
+            <Text style={[styles.wheelLabel, { color: tone.muted }]}>分钟</Text>
+            <Picker
+              enabled={!running}
+              selectedValue={Math.floor(seconds / 60)}
+              onValueChange={(minutes) => {
+                setRunning(false);
+                setSeconds(Number(minutes) * 60 + (seconds % 60));
+              }}
+              itemStyle={{ color: tone.ink, fontSize: 22 }}
+              style={styles.wheel}
+            >
+              {Array.from({ length: 181 }, (_, value) => <Picker.Item key={value} label={`${value}`} value={value} color={tone.ink} />)}
+            </Picker>
+          </View>
+          <View style={styles.wheelDivider} />
+          <View style={styles.wheelColumn}>
+            <Text style={[styles.wheelLabel, { color: tone.muted }]}>秒</Text>
+            <Picker
+              enabled={!running}
+              selectedValue={secondWheelIndex}
+              onValueChange={(value) => {
+                const wheelValue = Number(value);
+                setRunning(false);
+                setSecondWheelIndex(wheelValue);
+                setSeconds(Math.floor(seconds / 60) * 60 + (wheelValue % 60));
+              }}
+              itemStyle={{ color: tone.ink, fontSize: 22 }}
+              style={styles.wheel}
+            >
+              {Array.from({ length: 180 }, (_, value) => <Picker.Item key={value} label={`${value % 60}`} value={value} color={tone.ink} />)}
+            </Picker>
+          </View>
         </View>
-      </View>
+      )}
       <View style={styles.timerControls}>
         <Pressable
           onPress={toggleTimer}
@@ -5815,6 +5834,31 @@ Object.assign(styles, {
     shadowRadius: 2,
     shadowOffset: { width: 1, height: 2 },
   },
+  webTimerCard: {
+    width: "100%",
+    minHeight: 132,
+    borderRadius: 13,
+    marginTop: 16,
+    flexDirection: "row",
+    padding: 13,
+    gap: 12,
+    shadowColor: "#704B39",
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    shadowOffset: { width: 1, height: 2 },
+  },
+  webTimerStepper: { flex: 1, alignItems: "center", justifyContent: "center" },
+  webTimerButtons: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
+  webTimerButton: {
+    width: 35,
+    height: 35,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  webTimerButtonText: { fontSize: 21, lineHeight: 23, fontFamily: "ZCOOLKuaiLe" },
+  webTimerValue: { minWidth: 39, textAlign: "center", fontSize: 28, fontFamily: "ZCOOLKuaiLe" },
+  webTimerTip: { fontSize: 11, marginTop: 7, fontFamily: "LongCang" },
   wheelDivider: { width: 1, backgroundColor: "#E8D8C5", marginVertical: 29 },
   timerControls: {
     flexDirection: "row",
