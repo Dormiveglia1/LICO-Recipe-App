@@ -9,9 +9,10 @@ const manifest = {
   display: "standalone",
   background_color: "#FFF9F0",
   theme_color: "#FFF9F0",
-  icons: [{ src: "/icon.png", sizes: "512x512", type: "image/png" }],
+  icons: [{ src: "/chestnut-app-icon.png", sizes: "1024x1024", type: "image/png" }],
 };
-const serviceWorker = `const CACHE = "lico-shell-v1";
+const cacheId = `lico-shell-${Date.now()}`;
+const serviceWorker = `const CACHE = "${cacheId}";
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(["/", "/index.html"]))));
 self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", event => {
@@ -24,8 +25,8 @@ self.addEventListener("fetch", event => {
 
 const indexPath = join(dist, "index.html");
 const index = await readFile(indexPath, "utf8");
-const tags = `  <link rel="manifest" href="/manifest.webmanifest" />\n  <link rel="apple-touch-icon" href="/icon.png" />\n  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>`;
+const tags = `  <link rel="manifest" href="/manifest.webmanifest" />\n  <link rel="apple-touch-icon" href="/chestnut-app-icon.png" />\n  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>`;
 await writeFile(indexPath, index.replace("</head>", `${tags}\n</head>`));
 await writeFile(join(dist, "manifest.webmanifest"), JSON.stringify(manifest));
 await writeFile(join(dist, "sw.js"), serviceWorker);
-await copyFile("assets/icon.png", join(dist, "icon.png"));
+await copyFile("assets/chestnut-app-icon.png", join(dist, "chestnut-app-icon.png"));

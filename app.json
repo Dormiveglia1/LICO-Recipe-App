@@ -9,7 +9,7 @@
       "ios",
       "web"
     ],
-    "icon": "./assets/icon.png",
+    "icon": "./assets/chestnut-app-icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -42,7 +42,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/chestnut-app-icon.png",
       "name": "栗刻 LICO",
       "shortName": "栗刻",
       "themeColor": "#FFF9F0",
