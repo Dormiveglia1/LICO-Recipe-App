@@ -26,7 +26,13 @@ self.addEventListener("fetch", event => {
 const indexPath = join(dist, "index.html");
 const index = await readFile(indexPath, "utf8");
 const tags = `  <link rel="manifest" href="/manifest.webmanifest" />\n  <link rel="apple-touch-icon" href="/chestnut-app-icon.png" />\n  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");</script>`;
-await writeFile(indexPath, index.replace("</head>", `${tags}\n</head>`));
+const mobileViewport = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />';
+await writeFile(
+  indexPath,
+  index
+    .replace(/<meta name="viewport"[^>]*\/>/, mobileViewport)
+    .replace("</head>", `${tags}\n</head>`),
+);
 await writeFile(join(dist, "manifest.webmanifest"), JSON.stringify(manifest));
 await writeFile(join(dist, "sw.js"), serviceWorker);
 await copyFile("assets/chestnut-app-icon.png", join(dist, "chestnut-app-icon.png"));
