@@ -1,25 +1,51 @@
 {
   "expo": {
-    "name": "lico",
+    "name": "栗刻 LICO",
     "slug": "lico",
+    "scheme": "lico",
     "version": "1.0.0",
     "orientation": "portrait",
+    "platforms": [
+      "ios"
+    ],
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFF9F0"
     },
-    "android": {
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "predictiveBackGestureEnabled": false
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "允许栗刻访问相册，用于添加菜谱和步骤图片。"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#C8764D"
+        }
+      ],
+      "expo-font"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.dormiveglia.lico",
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c4ba69fc-6f2d-4cab-af50-86ae3e007101"
+      }
+    },
+    "owner": "dormiveglia"
   }
 }
