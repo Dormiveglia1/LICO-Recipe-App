@@ -375,6 +375,8 @@ export default function App() {
   const webMinuteWheelRef = useRef<ScrollView | null>(null);
   const webSecondWheelRef = useRef<ScrollView | null>(null);
   const webWheelSettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const webMinuteWheelReady = useRef(false);
+  const webSecondWheelReady = useRef(false);
   const timerNotificationRef = useRef<string | null>(null);
   const shoppingCheckLock = useRef<Record<string, number>>({});
   const pendingShoppingChecks = useRef<
@@ -1274,6 +1276,14 @@ export default function App() {
     timerNotificationRef.current = null;
   }, [running]);
   useEffect(() => {
+    if (Platform.OS !== "web" || running) return;
+    const frame = requestAnimationFrame(() => {
+      webMinuteWheelRef.current?.scrollTo({ y: Math.floor(seconds / 60) * 42, animated: false });
+      webSecondWheelRef.current?.scrollTo({ y: secondWheelIndex * 42, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [seconds, secondWheelIndex, running]);
+  useEffect(() => {
     setCookCountText(detail ? String(detail.cookedCount || 0) : "");
     setCookCountEditing(false);
     setCookCountStatus("");
@@ -1636,17 +1646,24 @@ export default function App() {
       const value = part === "minutes"
         ? Math.max(0, Math.min(180, rawValue))
         : Math.max(0, Math.min(179, rawValue));
-      const targetOffset = value * 42;
+      // The second wheel repeats 0–59 three times. Keep the actual selected
+      // slot while scrolling so React does not pull the wheel back to a
+      // different copy of the same number after a state update.
+      const wheelValue =
+        part === "seconds" && (value < 5 || value > 174)
+          ? 60 + (value % 60)
+          : value;
+      const targetOffset = wheelValue * 42;
       (part === "minutes" ? webMinuteWheelRef : webSecondWheelRef).current?.scrollTo({ y: targetOffset, animated: true });
       setTimerFinished(false);
       if (part === "minutes") {
         setSeconds((current) => value * 60 + (current % 60));
       } else {
-        const secondValue = value % 60;
-        setSecondWheelIndex(60 + secondValue);
+        const secondValue = wheelValue % 60;
+        setSecondWheelIndex(wheelValue);
         setSeconds((current) => Math.floor(current / 60) * 60 + secondValue);
       }
-    }, 120);
+    }, 200);
   };
   const toggleTimer = async () => {
     if (running) return setRunning(false);
@@ -2933,14 +2950,17 @@ export default function App() {
           <View style={styles.wheelColumn}>
             <Text style={[styles.wheelLabel, { color: tone.muted }]}>分钟</Text>
             <ScrollView
-              key={`web-minute-${Math.floor(seconds / 60)}`}
               ref={webMinuteWheelRef}
               style={styles.webWheel}
               contentContainerStyle={styles.webWheelContent}
-              contentOffset={{ x: 0, y: Math.floor(seconds / 60) * 42 }}
               showsVerticalScrollIndicator={false}
               scrollEnabled={!running}
               scrollEventThrottle={16}
+              onLayout={() => {
+                if (webMinuteWheelReady.current) return;
+                webMinuteWheelReady.current = true;
+                webMinuteWheelRef.current?.scrollTo({ y: Math.floor(seconds / 60) * 42, animated: false });
+              }}
               onScroll={(event) => settleWebWheel("minutes", event.nativeEvent.contentOffset.y)}
               onScrollEndDrag={(event) => settleWebWheel("minutes", event.nativeEvent.contentOffset.y)}
             >
@@ -2952,14 +2972,17 @@ export default function App() {
           <View style={styles.wheelColumn}>
             <Text style={[styles.wheelLabel, { color: tone.muted }]}>秒</Text>
             <ScrollView
-              key={`web-second-${secondWheelIndex}`}
               ref={webSecondWheelRef}
               style={styles.webWheel}
               contentContainerStyle={styles.webWheelContent}
-              contentOffset={{ x: 0, y: secondWheelIndex * 42 }}
               showsVerticalScrollIndicator={false}
               scrollEnabled={!running}
               scrollEventThrottle={16}
+              onLayout={() => {
+                if (webSecondWheelReady.current) return;
+                webSecondWheelReady.current = true;
+                webSecondWheelRef.current?.scrollTo({ y: secondWheelIndex * 42, animated: false });
+              }}
               onScroll={(event) => settleWebWheel("seconds", event.nativeEvent.contentOffset.y)}
               onScrollEndDrag={(event) => settleWebWheel("seconds", event.nativeEvent.contentOffset.y)}
             >
