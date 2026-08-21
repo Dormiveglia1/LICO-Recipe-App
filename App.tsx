@@ -1422,8 +1422,7 @@ export default function App() {
   }, [detail?.id]);
   const tone = dark ? darkTheme : lightTheme;
   const recipeScreenTranslateX = useRef(new Animated.Value(0)).current;
-  const isBackSwipe = (gesture: { x0: number; dx: number; dy: number }) =>
-    gesture.x0 <= 48 &&
+  const isBackSwipe = (gesture: { dx: number; dy: number }) =>
     gesture.dx > 12 &&
     gesture.dx > Math.abs(gesture.dy) * 2.2;
   const recipeScreenSwipe = useMemo(
