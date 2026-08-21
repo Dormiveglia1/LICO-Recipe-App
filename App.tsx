@@ -1624,20 +1624,6 @@ export default function App() {
     }
   };
   const formattedTime = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
-  const adjustTimerPart = (part: "minutes" | "seconds", delta: number) => {
-    if (running) return;
-    setTimerFinished(false);
-    setSeconds((current) => {
-      const minutes = Math.floor(current / 60);
-      const secondPart = current % 60;
-      if (part === "minutes") {
-        return Math.max(0, Math.min(180, minutes + delta)) * 60 + secondPart;
-      }
-      const nextSeconds = (secondPart + delta + 60) % 60;
-      setSecondWheelIndex(60 + nextSeconds);
-      return minutes * 60 + nextSeconds;
-    });
-  };
   const toggleTimer = async () => {
     if (running) return setRunning(false);
     if (!seconds) return Alert.alert("先设定时间", "滚动转轮设置至少 1 秒。");
@@ -2920,20 +2906,51 @@ export default function App() {
       {!running && <View style={styles.quickTimerRow}>{[3, 5, 10, 15, 20, 30].map((minutes) => <Pressable key={minutes} onPress={() => { setTimerFinished(false); setTimerRecipe(null); setSeconds(minutes * 60); setSecondWheelIndex(60); }} style={[styles.quickTimer, { backgroundColor: tone.accent }]}><Text style={{ color: tone.orange }}>{minutes} 分</Text></Pressable>)}</View>}
       {Platform.OS === "web" ? (
         <View style={[styles.webTimerCard, { backgroundColor: tone.card, opacity: running ? 0.58 : 1 }]}>
-          {(["minutes", "seconds"] as const).map((part) => {
-            const value = part === "minutes" ? Math.floor(seconds / 60) : seconds % 60;
-            return (
-              <View key={part} style={styles.webTimerStepper}>
-                <Text style={[styles.wheelLabel, { color: tone.muted }]}>{part === "minutes" ? "分钟" : "秒"}</Text>
-                <View style={styles.webTimerButtons}>
-                  <Pressable disabled={running} onPress={() => adjustTimerPart(part, -1)} style={[styles.webTimerButton, { backgroundColor: tone.accent }]}><Text style={[styles.webTimerButtonText, { color: tone.ink }]}>−</Text></Pressable>
-                  <Text style={[styles.webTimerValue, { color: tone.ink }]}>{String(value).padStart(2, "0")}</Text>
-                  <Pressable disabled={running} onPress={() => adjustTimerPart(part, 1)} style={[styles.webTimerButton, { backgroundColor: tone.accent }]}><Text style={[styles.webTimerButtonText, { color: tone.ink }]}>＋</Text></Pressable>
-                </View>
-                <Text style={[styles.webTimerTip, { color: tone.muted }]}>{part === "seconds" ? "59 后回到 00" : "轻点调整"}</Text>
-              </View>
-            );
-          })}
+          <View style={styles.wheelColumn}>
+            <Text style={[styles.wheelLabel, { color: tone.muted }]}>分钟</Text>
+            <ScrollView
+              key={`web-minute-${Math.floor(seconds / 60)}`}
+              style={styles.webWheel}
+              contentContainerStyle={styles.webWheelContent}
+              contentOffset={{ x: 0, y: Math.floor(seconds / 60) * 42 }}
+              snapToInterval={42}
+              decelerationRate="fast"
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={!running}
+              onMomentumScrollEnd={(event) => {
+                const value = Math.max(0, Math.min(180, Math.round(event.nativeEvent.contentOffset.y / 42)));
+                setTimerFinished(false);
+                setSeconds(value * 60 + (seconds % 60));
+              }}
+            >
+              {Array.from({ length: 181 }, (_, value) => <Text key={value} style={[styles.webWheelItem, { color: tone.ink }]}>{String(value).padStart(2, "0")}</Text>)}
+            </ScrollView>
+            <View pointerEvents="none" style={[styles.webWheelSelection, { borderColor: tone.orange }]} />
+          </View>
+          <View style={styles.wheelDivider} />
+          <View style={styles.wheelColumn}>
+            <Text style={[styles.wheelLabel, { color: tone.muted }]}>秒</Text>
+            <ScrollView
+              key={`web-second-${secondWheelIndex}`}
+              style={styles.webWheel}
+              contentContainerStyle={styles.webWheelContent}
+              contentOffset={{ x: 0, y: secondWheelIndex * 42 }}
+              snapToInterval={42}
+              decelerationRate="fast"
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={!running}
+              onMomentumScrollEnd={(event) => {
+                const rawValue = Math.max(0, Math.min(179, Math.round(event.nativeEvent.contentOffset.y / 42)));
+                const value = rawValue % 60;
+                setTimerFinished(false);
+                setSecondWheelIndex(60 + value);
+                setSeconds(Math.floor(seconds / 60) * 60 + value);
+              }}
+            >
+              {Array.from({ length: 180 }, (_, value) => <Text key={value} style={[styles.webWheelItem, { color: tone.ink }]}>{String(value % 60).padStart(2, "0")}</Text>)}
+            </ScrollView>
+            <View pointerEvents="none" style={[styles.webWheelSelection, { borderColor: tone.orange }]} />
+          </View>
         </View>
       ) : (
         <View
@@ -5836,7 +5853,7 @@ Object.assign(styles, {
   },
   webTimerCard: {
     width: "100%",
-    minHeight: 132,
+    height: 190,
     borderRadius: 13,
     marginTop: 16,
     flexDirection: "row",
@@ -5847,18 +5864,26 @@ Object.assign(styles, {
     shadowRadius: 2,
     shadowOffset: { width: 1, height: 2 },
   },
-  webTimerStepper: { flex: 1, alignItems: "center", justifyContent: "center" },
-  webTimerButtons: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 },
-  webTimerButton: {
-    width: 35,
-    height: 35,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
+  webWheel: { width: "100%", height: 126, marginTop: 2 },
+  webWheelContent: { paddingVertical: 42 },
+  webWheelItem: {
+    height: 42,
+    lineHeight: 42,
+    textAlign: "center",
+    fontFamily: "ZCOOLKuaiLe",
+    fontSize: 24,
   },
-  webTimerButtonText: { fontSize: 21, lineHeight: 23, fontFamily: "ZCOOLKuaiLe" },
-  webTimerValue: { minWidth: 39, textAlign: "center", fontSize: 28, fontFamily: "ZCOOLKuaiLe" },
-  webTimerTip: { fontSize: 11, marginTop: 7, fontFamily: "LongCang" },
+  webWheelSelection: {
+    position: "absolute",
+    top: 66,
+    left: 3,
+    right: 3,
+    height: 42,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderRadius: 7,
+    backgroundColor: "rgba(247, 231, 205, 0.28)",
+  },
   wheelDivider: { width: 1, backgroundColor: "#E8D8C5", marginVertical: 29 },
   timerControls: {
     flexDirection: "row",
