@@ -372,6 +372,9 @@ export default function App() {
   const [randomName, setRandomName] = useState("");
   const [randomCategory, setRandomCategory] = useState("主菜");
   const randomTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const webMinuteWheelRef = useRef<ScrollView | null>(null);
+  const webSecondWheelRef = useRef<ScrollView | null>(null);
+  const webWheelSettleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerNotificationRef = useRef<string | null>(null);
   const shoppingCheckLock = useRef<Record<string, number>>({});
   const pendingShoppingChecks = useRef<
@@ -397,6 +400,7 @@ export default function App() {
   useEffect(
     () => () => {
       if (randomTimerRef.current) clearInterval(randomTimerRef.current);
+      if (webWheelSettleTimer.current) clearTimeout(webWheelSettleTimer.current);
     },
     [],
   );
@@ -1624,6 +1628,26 @@ export default function App() {
     }
   };
   const formattedTime = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+  const settleWebWheel = (part: "minutes" | "seconds", offsetY: number) => {
+    if (running) return;
+    if (webWheelSettleTimer.current) clearTimeout(webWheelSettleTimer.current);
+    webWheelSettleTimer.current = setTimeout(() => {
+      const rawValue = Math.round(offsetY / 42);
+      const value = part === "minutes"
+        ? Math.max(0, Math.min(180, rawValue))
+        : Math.max(0, Math.min(179, rawValue));
+      const targetOffset = value * 42;
+      (part === "minutes" ? webMinuteWheelRef : webSecondWheelRef).current?.scrollTo({ y: targetOffset, animated: true });
+      setTimerFinished(false);
+      if (part === "minutes") {
+        setSeconds((current) => value * 60 + (current % 60));
+      } else {
+        const secondValue = value % 60;
+        setSecondWheelIndex(60 + secondValue);
+        setSeconds((current) => Math.floor(current / 60) * 60 + secondValue);
+      }
+    }, 120);
+  };
   const toggleTimer = async () => {
     if (running) return setRunning(false);
     if (!seconds) return Alert.alert("先设定时间", "滚动转轮设置至少 1 秒。");
@@ -2910,18 +2934,15 @@ export default function App() {
             <Text style={[styles.wheelLabel, { color: tone.muted }]}>分钟</Text>
             <ScrollView
               key={`web-minute-${Math.floor(seconds / 60)}`}
+              ref={webMinuteWheelRef}
               style={styles.webWheel}
               contentContainerStyle={styles.webWheelContent}
               contentOffset={{ x: 0, y: Math.floor(seconds / 60) * 42 }}
-              snapToInterval={42}
-              decelerationRate="fast"
               showsVerticalScrollIndicator={false}
               scrollEnabled={!running}
-              onMomentumScrollEnd={(event) => {
-                const value = Math.max(0, Math.min(180, Math.round(event.nativeEvent.contentOffset.y / 42)));
-                setTimerFinished(false);
-                setSeconds(value * 60 + (seconds % 60));
-              }}
+              scrollEventThrottle={16}
+              onScroll={(event) => settleWebWheel("minutes", event.nativeEvent.contentOffset.y)}
+              onScrollEndDrag={(event) => settleWebWheel("minutes", event.nativeEvent.contentOffset.y)}
             >
               {Array.from({ length: 181 }, (_, value) => <Text key={value} style={[styles.webWheelItem, { color: tone.ink }]}>{String(value).padStart(2, "0")}</Text>)}
             </ScrollView>
@@ -2932,20 +2953,15 @@ export default function App() {
             <Text style={[styles.wheelLabel, { color: tone.muted }]}>秒</Text>
             <ScrollView
               key={`web-second-${secondWheelIndex}`}
+              ref={webSecondWheelRef}
               style={styles.webWheel}
               contentContainerStyle={styles.webWheelContent}
               contentOffset={{ x: 0, y: secondWheelIndex * 42 }}
-              snapToInterval={42}
-              decelerationRate="fast"
               showsVerticalScrollIndicator={false}
               scrollEnabled={!running}
-              onMomentumScrollEnd={(event) => {
-                const rawValue = Math.max(0, Math.min(179, Math.round(event.nativeEvent.contentOffset.y / 42)));
-                const value = rawValue % 60;
-                setTimerFinished(false);
-                setSecondWheelIndex(60 + value);
-                setSeconds(Math.floor(seconds / 60) * 60 + value);
-              }}
+              scrollEventThrottle={16}
+              onScroll={(event) => settleWebWheel("seconds", event.nativeEvent.contentOffset.y)}
+              onScrollEndDrag={(event) => settleWebWheel("seconds", event.nativeEvent.contentOffset.y)}
             >
               {Array.from({ length: 180 }, (_, value) => <Text key={value} style={[styles.webWheelItem, { color: tone.ink }]}>{String(value % 60).padStart(2, "0")}</Text>)}
             </ScrollView>
