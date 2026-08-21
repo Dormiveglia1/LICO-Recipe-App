@@ -4699,8 +4699,8 @@ export default function App() {
   return (
     <ImageBackground
       source={paperBackground}
-      style={styles.safe}
-      imageStyle={styles.paperImage}
+      style={[styles.safe, { backgroundColor: tone.paper }]}
+      imageStyle={[styles.paperImage, dark && styles.paperImageDark]}
     >
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
@@ -5583,6 +5583,7 @@ Object.assign(styles, {
     marginBottom: -12,
   },
   paperImage: { opacity: 0.42 },
+  paperImageDark: { opacity: 0.1 },
   tag: {
     backgroundColor: "#FFF1C9",
     borderWidth: 2,
