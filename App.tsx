@@ -281,6 +281,14 @@ const readFamilyRows = async <T,>(
   }
 };
 
+const notificationPermissionGranted = (permission: unknown) => {
+  const commonPermission = permission as {
+    granted?: boolean;
+    status?: string;
+  };
+  return commonPermission.granted === true || commonPermission.status === "granted";
+};
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     ZCOOLKuaiLe: require("./assets/ZCOOLKuaiLe-Regular.ttf"),
@@ -1606,15 +1614,7 @@ export default function App() {
       return allowed;
     }
     const permission = await Notifications.getPermissionsAsync();
-    const commonPermission = permission as unknown as {
-      granted?: boolean;
-      status?: string;
-    };
-    const allowed =
-      commonPermission.granted ||
-      commonPermission.status === "granted" ||
-      permission.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED ||
-      permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    const allowed = notificationPermissionGranted(permission);
     setNotificationPermission(allowed ? "已允许" : "未允许");
     return allowed;
   };
@@ -1635,15 +1635,7 @@ export default function App() {
       return allowed;
     }
     const permission = await Notifications.requestPermissionsAsync();
-    const commonPermission = permission as unknown as {
-      granted?: boolean;
-      status?: string;
-    };
-    const allowed =
-      commonPermission.granted ||
-      commonPermission.status === "granted" ||
-      permission.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED ||
-      permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    const allowed = notificationPermissionGranted(permission);
     setNotificationPermission(allowed ? "已允许" : "未允许");
     setNotificationsEnabled(allowed);
     return allowed;
