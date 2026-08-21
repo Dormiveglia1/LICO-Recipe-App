@@ -1422,22 +1422,23 @@ export default function App() {
   }, [detail?.id]);
   const tone = dark ? darkTheme : lightTheme;
   const recipeScreenTranslateX = useRef(new Animated.Value(0)).current;
+  const isBackSwipe = (gesture: { x0: number; dx: number; dy: number }) =>
+    gesture.x0 <= 32 &&
+    gesture.dx > 32 &&
+    gesture.dx > Math.abs(gesture.dy) * 3;
   const recipeScreenSwipe = useMemo(
     () =>
       PanResponder.create({
-        onMoveShouldSetPanResponder: (_, gesture) =>
-          gesture.x0 <= 32 &&
-          gesture.dx > 20 &&
-          gesture.dx > Math.abs(gesture.dy) * 1.6,
-        onMoveShouldSetPanResponderCapture: (_, gesture) =>
-          gesture.x0 <= 32 &&
-          gesture.dx > 20 &&
-          gesture.dx > Math.abs(gesture.dy) * 1.6,
+        onMoveShouldSetPanResponder: (_, gesture) => isBackSwipe(gesture),
+        onMoveShouldSetPanResponderCapture: (_, gesture) => isBackSwipe(gesture),
         onPanResponderGrant: () => recipeScreenTranslateX.setValue(0),
         onPanResponderMove: (_, gesture) =>
-          recipeScreenTranslateX.setValue(Math.max(0, gesture.dx)),
+          recipeScreenTranslateX.setValue(isBackSwipe(gesture) ? gesture.dx : 0),
         onPanResponderRelease: (_, gesture) => {
-          if (gesture.dx > 55 || (gesture.dx > 42 && gesture.vx > 0.75))
+          if (
+            isBackSwipe(gesture) &&
+            (gesture.dx > 55 || (gesture.dx > 42 && gesture.vx > 0.75))
+          )
             return recipeScreenTranslateX.stopAnimation(() => {
               recipeScreenTranslateX.setValue(0);
               if (composer) setComposer(false);
@@ -4749,6 +4750,7 @@ export default function App() {
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="interactive"
             automaticallyAdjustKeyboardInsets
+            directionalLockEnabled
           >
             <Animated.View
               style={
