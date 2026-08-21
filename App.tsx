@@ -437,9 +437,12 @@ export default function App() {
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => setKeyboardVisible(true),
     );
-    const hide = Keyboard.addListener(
-      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKeyboardVisible(false),
+    // Do not put the navigation bar back during iOS's hide animation: at
+    // `keyboardWillHide` the root view is still at its keyboard-sized height.
+    // Rendering the absolute nav at that moment is what left it stranded
+    // halfway up the page.
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false),
     );
     return () => {
       show.remove();
@@ -2236,6 +2239,7 @@ export default function App() {
     <View
       style={[
         styles.nav,
+        Platform.OS === "web" && styles.navWeb,
         {
           backgroundColor: dark ? "#2C211DF0" : "#FFF9F0E8",
           borderColor: tone.line,
@@ -5068,6 +5072,10 @@ const styles: any = StyleSheet.create({
     justifyContent: "space-around",
     paddingTop: 10,
   },
+  // Home-screen Safari can temporarily keep the application container at the
+  // keyboard's height. A fixed layer is anchored to the browser viewport,
+  // instead of that stale container.
+  navWeb: { position: "fixed" as any, zIndex: 20 },
   navItem: { alignItems: "center", width: 64 },
   navIcon: { fontSize: 22, lineHeight: 25 },
   navText: { fontSize: 11, marginTop: 2, fontWeight: "700" },
