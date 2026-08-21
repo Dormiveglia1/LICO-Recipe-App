@@ -69,6 +69,7 @@ type Recipe = {
   cookedCount?: number;
   lastCookedAt?: string;
   updatedAt?: string;
+  createdBy?: string;
   reviews?: CookReview[];
 };
 type IngredientDraft = {
@@ -1201,11 +1202,27 @@ export default function App() {
             cookedCount: row.cooked_count || 0,
             lastCookedAt: row.last_cooked_at || undefined,
             updatedAt: row.updated_at || row.created_at,
+            createdBy: row.created_by || undefined,
             reviews: row.reviews || [],
           };
         });
       if (!active) return;
-      setRecipeList(hydrated);
+      setRecipeList((current) => {
+        const previousById = new Map(current.map((recipe) => [String(recipe.id), recipe]));
+        return hydrated.map((recipe) => {
+          const previous = previousById.get(String(recipe.id));
+          if (!previous || previous.coverPath !== recipe.coverPath) return recipe;
+          return {
+            ...recipe,
+            cover: previous.cover,
+            steps: recipe.steps.map((step: RecipeStep, index: number) =>
+              previous.steps[index]?.imagePath === step.imagePath
+                ? { ...step, image: previous.steps[index].image }
+                : step,
+            ),
+          };
+        });
+      });
       setMenu(
         Object.fromEntries(
           remoteMenu.map((item: any) => [item.recipe_id, item.stage]),
@@ -1981,6 +1998,7 @@ export default function App() {
         note: data.note || "",
         cookedCount: data.cooked_count || 0,
         lastCookedAt: data.last_cooked_at || undefined,
+        createdBy: data.created_by || undefined,
         reviews: data.reviews || [],
       };
       setRecipeList((items) =>
@@ -3894,6 +3912,11 @@ export default function App() {
         <Text style={[styles.detailTitle, { color: tone.ink }]}>
           {detail.name}
         </Text>
+        <Text style={[styles.detailAuthor, { color: tone.muted }]}>
+          ✦ 由 {detail.createdBy === session?.user.id
+            ? profile.display_name
+            : members.find((member) => member.user_id === detail.createdBy)?.display_name || "家庭成员"} 添加
+        </Text>
         <View style={styles.detailActions}>
           <Pressable onPress={() => toggleFavorite(detail.id)} style={[styles.detailAction, { backgroundColor: tone.accent }]}><Text style={{ color: tone.orange }}>{favorites.includes(detail.id) ? "♥ 已收藏" : "♡ 收藏"}</Text></Pressable>
           <Pressable onPress={() => moveRecipe(detail.id)} style={[styles.detailAction, { backgroundColor: tone.accent }]}><Text style={{ color: tone.orange }}>＋ 加菜单</Text></Pressable>
@@ -5584,6 +5607,7 @@ Object.assign(styles, {
   },
   paperImage: { opacity: 0.42 },
   paperImageDark: { opacity: 0.1 },
+  detailAuthor: { fontSize: 14, marginTop: 4, marginBottom: 10, fontFamily: "ZCOOLKuaiLe" },
   tag: {
     backgroundColor: "#FFF1C9",
     borderWidth: 2,
