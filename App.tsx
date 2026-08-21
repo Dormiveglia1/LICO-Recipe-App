@@ -2377,6 +2377,7 @@ export default function App() {
   );
   const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
     <Pressable
+      key={recipe.id}
       onPress={() => openRecipe(recipe)}
       style={[styles.recipeCard, { backgroundColor: tone.card }]}
     >
@@ -2736,9 +2737,7 @@ export default function App() {
         </Text>
       ) : null}
       {!favoritesOnly && !visibleRecipes.length ? <View style={[styles.emptyDiary, { backgroundColor: tone.accent }]}><Image source={chestnutMascot} style={styles.emptyChestnut} resizeMode="contain" /><Text style={[styles.settingText, { color: tone.ink }]}>Chestnut 没有找到这道菜</Text><Text style={[styles.note, { color: tone.muted }]}>换个关键词，或清除筛选再看看吧。</Text><Pressable onPress={() => { setQuery(""); setIngredientFilter(""); setTasteFilter(""); setTagFilter(""); setCategory("全部"); }}><Text style={{ color: tone.orange, fontWeight: "800", marginTop: 7 }}>清除全部筛选</Text></Pressable></View> : null}
-      {orderedVisibleRecipes.map((recipe) => (
-        <RecipeCard key={recipe.id} recipe={recipe} />
-      ))}
+      {orderedVisibleRecipes.map((recipe) => RecipeCard({ recipe }))}
       <View style={{ height: 16 }} />
       </View>
       </ScrollView>
