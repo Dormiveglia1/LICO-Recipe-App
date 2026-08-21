@@ -1,4 +1,4 @@
-import { copyFile, readFile, writeFile } from "node:fs/promises";
+import { copyFile, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 const dist = "dist";
@@ -32,7 +32,15 @@ self.addEventListener("fetch", event => {
 
 const indexPath = join(dist, "index.html");
 const index = await readFile(indexPath, "utf8");
-const tags = `  <link rel="manifest" href="/manifest.webmanifest" />\n  <link rel="apple-touch-icon" href="/chestnut-app-icon.png" />\n  <style id="lico-viewport-lock">\n    /* Safari otherwise scrolls the entire document to a focused input. */\n    html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }\n    #root { width: 100%; min-height: 100%; overflow: hidden; }\n  </style>\n  <script>\n    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");\n    const preventZoom = event => event.preventDefault();\n    document.addEventListener("gesturestart", preventZoom, { passive: false });\n    document.addEventListener("gesturechange", preventZoom, { passive: false });\n    document.addEventListener("gestureend", preventZoom, { passive: false });\n    document.addEventListener("touchmove", event => { if (event.touches.length > 1) event.preventDefault(); }, { passive: false });\n  </script>`;
+const assets = await readdir(join(dist, "assets", "assets"));
+const fontUrl = (prefix) => {
+  const asset = assets.find((file) => file.startsWith(prefix) && file.endsWith(".ttf"));
+  if (!asset) throw new Error(`Missing bundled font: ${prefix}`);
+  return `/assets/assets/${asset}`;
+};
+const zcoolFont = fontUrl("ZCOOLKuaiLe-Regular");
+const longCangFont = fontUrl("LongCang-Regular");
+const tags = `  <link rel="manifest" href="/manifest.webmanifest" />\n  <link rel="apple-touch-icon" href="/chestnut-app-icon.png" />\n  <link rel="preload" href="${zcoolFont}" as="font" type="font/ttf" crossorigin />\n  <link rel="preload" href="${longCangFont}" as="font" type="font/ttf" crossorigin />\n  <style id="lico-viewport-lock">\n    /* Safari otherwise scrolls the entire document to a focused input. */\n    html, body { position: fixed; inset: 0; width: 100%; height: 100%; overflow: hidden; }\n    #root { width: 100%; min-height: 100%; overflow: hidden; }\n    /* Register the same family names before React Native Web paints text. */\n    @font-face { font-family: "ZCOOLKuaiLe"; src: url("${zcoolFont}") format("truetype"); font-display: block; }\n    @font-face { font-family: "LongCang"; src: url("${longCangFont}") format("truetype"); font-display: block; }\n  </style>\n  <script>\n    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");\n    const preventZoom = event => event.preventDefault();\n    document.addEventListener("gesturestart", preventZoom, { passive: false });\n    document.addEventListener("gesturechange", preventZoom, { passive: false });\n    document.addEventListener("gestureend", preventZoom, { passive: false });\n    document.addEventListener("touchmove", event => { if (event.touches.length > 1) event.preventDefault(); }, { passive: false });\n  </script>`;
 const mobileViewport = '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />';
 await writeFile(
   indexPath,

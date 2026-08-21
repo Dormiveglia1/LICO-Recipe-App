@@ -4568,6 +4568,14 @@ export default function App() {
               >
                 <Text style={styles.spinText}>加入家庭</Text>
               </Pressable>
+              <Pressable
+                onPress={signOut}
+                style={[styles.gateButton, { backgroundColor: "#F2E4D0" }]}
+              >
+                <Text style={{ color: "#B85740", fontWeight: "800" }}>
+                  退出登录
+                </Text>
+              </Pressable>
             </View>
           )}
           {authMessage ? (
