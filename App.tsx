@@ -612,7 +612,7 @@ export default function App() {
       const [family, memberList] = await Promise.all([
         supabase
           .from("families")
-          .select("owner_id")
+          .select("owner_id, invite_code, name")
           .eq("id", familyId)
           .single(),
         supabase
@@ -635,6 +635,8 @@ export default function App() {
       );
       if (!active) return;
       setFamilyOwnerId(family.data?.owner_id || null);
+      setFamilyInviteCode(family.data?.invite_code || "");
+      if (family.data?.name) setFamilyName(family.data.name);
       setMembers(
         (memberList.data || []).map((member) => ({
           ...member,
@@ -660,26 +662,64 @@ export default function App() {
         { event: "*", schema: "public", table: "profiles" },
         loadMembers,
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "families",
+          filter: `id=eq.${familyId}`,
+        },
+        loadMembers,
+      )
       .subscribe();
+    // Realtime is immediate when connected; this catches a missed mobile
+    // websocket message without making profile changes appear permanently stale.
+    const refreshTimer = setInterval(() => void loadMembers(), 8000);
+    const appStateSubscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void loadMembers();
+    });
     return () => {
       active = false;
+      clearInterval(refreshTimer);
+      appStateSubscription.remove();
       supabase.removeChannel(channel);
     };
   }, [familyId]);
   useEffect(() => {
     if (!familyId || !session) return setMemberNotes({});
-    supabase
-      .from("member_notes")
-      .select("member_id, note")
-      .eq("family_id", familyId)
-      .eq("author_id", session.user.id)
-      .then(({ data }) =>
-        setMemberNotes(
-          Object.fromEntries(
-            (data || []).map((item) => [item.member_id, item.note]),
-          ),
-        ),
+    let active = true;
+    const loadNotes = async () => {
+      const { data } = await supabase
+        .from("member_notes")
+        .select("member_id, note")
+        .eq("family_id", familyId)
+        .eq("author_id", session.user.id);
+      if (!active) return;
+      setMemberNotes(
+        Object.fromEntries((data || []).map((item) => [item.member_id, item.note])),
       );
+    };
+    void loadNotes();
+    const channel = supabase
+      .channel(`member-notes-${familyId}-${session.user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "member_notes",
+          filter: `family_id=eq.${familyId}`,
+        },
+        loadNotes,
+      )
+      .subscribe();
+    const refreshTimer = setInterval(() => void loadNotes(), 8000);
+    return () => {
+      active = false;
+      clearInterval(refreshTimer);
+      supabase.removeChannel(channel);
+    };
   }, [familyId, session]);
   const Alert = {
     alert: (
@@ -747,10 +787,18 @@ export default function App() {
         })
         .eq("id", session.user.id);
       if (error) throw error;
-      setProfile({
+      const savedProfile = {
         ...profile,
         avatar_url: (await imageUrl(avatarPath)) || "",
-      });
+      };
+      setProfile(savedProfile);
+      setMembers((current) =>
+        current.map((member) =>
+          member.user_id === session.user.id
+            ? { ...member, ...savedProfile }
+            : member,
+        ),
+      );
       setProfileEditing(false);
     } catch (error: any) {
       Alert.alert("资料保存失败", error.message || "请稍后重试。");
