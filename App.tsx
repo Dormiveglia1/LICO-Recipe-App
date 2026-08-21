@@ -295,6 +295,30 @@ export default function App() {
     ZCOOLKuaiLe: require("./assets/ZCOOLKuaiLe-Regular.ttf"),
     LongCang: require("./assets/LongCang-Regular.ttf"),
   });
+  // expo-font on iPhone Safari resolves as soon as it injects @font-face,
+  // rather than when the font file has finished downloading. Wait for the
+  // browser's FontFaceSet so handmade text never flashes in the system font.
+  const [webFontsReady, setWebFontsReady] = useState(Platform.OS !== "web");
+  useEffect(() => {
+    if (!fontsLoaded) return;
+    if (Platform.OS !== "web" || !document.fonts) {
+      setWebFontsReady(true);
+      return;
+    }
+    let active = true;
+    const fallback = setTimeout(() => active && setWebFontsReady(true), 7000);
+    Promise.all([
+      document.fonts.load('16px "ZCOOLKuaiLe"'),
+      document.fonts.load('16px "LongCang"'),
+    ]).finally(() => {
+      clearTimeout(fallback);
+      if (active) setWebFontsReady(true);
+    });
+    return () => {
+      active = false;
+      clearTimeout(fallback);
+    };
+  }, [fontsLoaded]);
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [familyId, setFamilyId] = useState<string | null>(null);
@@ -4611,7 +4635,7 @@ export default function App() {
       </Pressable>
     </Modal>
   );
-  if (!fontsLoaded) return null;
+  if (!fontsLoaded || !webFontsReady) return null;
   if (!session || !familyId) return Gate();
   return (
     <ImageBackground
