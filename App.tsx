@@ -975,21 +975,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [composer, editingId, familyId, draft]);
   useEffect(() => {
-    Notifications.getPermissionsAsync()
-      .then((permission) =>
-        setNotificationPermission(
-          permission.ios?.status ===
-            Notifications.IosAuthorizationStatus.AUTHORIZED ||
-            permission.ios?.status ===
-              Notifications.IosAuthorizationStatus.PROVISIONAL
-            ? "已允许"
-            : permission.ios?.status ===
-                Notifications.IosAuthorizationStatus.NOT_DETERMINED
-              ? "未询问"
-              : "未允许",
-        ),
-      )
-      .catch(() => setNotificationPermission("未允许"));
+    void refreshNotificationPermission();
   }, []);
   useEffect(() => {
     if (!familyId || !ready || !familyCacheReady || !session) return;
@@ -1259,6 +1245,15 @@ export default function App() {
             clearInterval(id);
             setRunning(false);
             setTimerFinished(true);
+            if (
+              Platform.OS === "web" &&
+              typeof Notification !== "undefined" &&
+              Notification.permission === "granted"
+            ) {
+              new Notification("Chestnut 的厨房提醒 🐾", {
+                body: "计时结束，可以去看看锅里啦！",
+              });
+            }
             Alert.alert("Chestnut 提醒你", "计时结束，可以去看看锅里啦！");
             return 0;
           }
@@ -1602,13 +1597,53 @@ export default function App() {
       Alert.alert("收藏没有同步成功", error.message);
     }
   };
-  const updateNotificationPermission = async () => {
-    const permission = await Notifications.requestPermissionsAsync();
+  const refreshNotificationPermission = async () => {
+    if (Platform.OS === "web") {
+      const state =
+        typeof Notification === "undefined" ? "denied" : Notification.permission;
+      const allowed = state === "granted";
+      setNotificationPermission(allowed ? "已允许" : state === "default" ? "未询问" : "未允许");
+      return allowed;
+    }
+    const permission = await Notifications.getPermissionsAsync();
+    const commonPermission = permission as unknown as {
+      granted?: boolean;
+      status?: string;
+    };
     const allowed =
-      permission.ios?.status ===
-        Notifications.IosAuthorizationStatus.AUTHORIZED ||
-      permission.ios?.status ===
-        Notifications.IosAuthorizationStatus.PROVISIONAL;
+      commonPermission.granted ||
+      commonPermission.status === "granted" ||
+      permission.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED ||
+      permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    setNotificationPermission(allowed ? "已允许" : "未允许");
+    return allowed;
+  };
+  const updateNotificationPermission = async () => {
+    if (Platform.OS === "web") {
+      if (typeof Notification === "undefined") {
+        setNotificationPermission("未允许");
+        setNotificationsEnabled(false);
+        return false;
+      }
+      const state =
+        Notification.permission === "default"
+          ? await Notification.requestPermission()
+          : Notification.permission;
+      const allowed = state === "granted";
+      setNotificationPermission(allowed ? "已允许" : "未允许");
+      setNotificationsEnabled(allowed);
+      return allowed;
+    }
+    const permission = await Notifications.requestPermissionsAsync();
+    const commonPermission = permission as unknown as {
+      granted?: boolean;
+      status?: string;
+    };
+    const allowed =
+      commonPermission.granted ||
+      commonPermission.status === "granted" ||
+      permission.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED ||
+      permission.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
     setNotificationPermission(allowed ? "已允许" : "未允许");
     setNotificationsEnabled(allowed);
     return allowed;
@@ -1620,6 +1655,16 @@ export default function App() {
           "还没有通知权限",
           "请在 iPhone 设置中允许「栗刻」发送通知后再试。",
         );
+      if (Platform.OS === "web") {
+        setTimeout(() => {
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            new Notification("Chestnut 的测试提醒 🐾", {
+              body: "通知设置已经准备好了。",
+            });
+          }
+        }, 3000);
+        return Alert.alert("测试提醒已安排", "3 秒后会在浏览器中看到 Chestnut 的提醒。");
+      }
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "Chestnut 的测试提醒 🐾",
