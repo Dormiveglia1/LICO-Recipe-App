@@ -2372,6 +2372,7 @@ export default function App() {
         }
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
+        automaticallyAdjustKeyboardInsets
       >
       <View style={styles.recipeIntro}>
       <View style={styles.header}>
@@ -4445,11 +4446,7 @@ export default function App() {
   const Gate = () => (
     <>
     <SafeAreaView style={[styles.safe, { backgroundColor: lightTheme.paper }]}>
-      <KeyboardAvoidingView
-        style={styles.safe}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
-      >
+      <View style={styles.safe}>
         <ScrollView
           contentContainerStyle={styles.gate}
           keyboardShouldPersistTaps="handled"
@@ -4534,7 +4531,7 @@ export default function App() {
             <Text style={styles.gateMessage}>{authMessage}</Text>
           ) : null}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
     {Sheet()}
     </>
@@ -4605,11 +4602,7 @@ export default function App() {
     >
       <SafeAreaView style={styles.safe}>
         <StatusBar barStyle={dark ? "light-content" : "dark-content"} />
-        <KeyboardAvoidingView
-          style={styles.safe}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
-        >
+        <View style={styles.safe}>
           {tab === "菜谱本" && !detail && !composer && !settingsOpen ? (
             Recipes()
           ) : (
@@ -4666,7 +4659,7 @@ export default function App() {
               </Text>
             </Pressable>
           )}
-        </KeyboardAvoidingView>
+        </View>
         {!detail && !composer && !keyboardVisible && Nav()}
         {Sheet()}
       </SafeAreaView>
