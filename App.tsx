@@ -3922,6 +3922,17 @@ export default function App() {
           <Pressable onPress={() => editRecipe(detail)} style={[styles.detailAction, { backgroundColor: tone.card, borderColor: tone.line }]}><Text style={{ color: tone.muted }}>✎ 编辑</Text></Pressable>
           <Pressable onPress={() => duplicateRecipe(detail)} style={[styles.detailAction, { backgroundColor: tone.card, borderColor: tone.line }]}><Text style={{ color: tone.muted }}>⧉ 复制</Text></Pressable>
         </View>
+        {detail.note ? (
+          <View
+            style={[
+              styles.recipeNoteSticker,
+              { backgroundColor: tone.accent, borderColor: tone.line },
+            ]}
+          >
+            <Text style={[styles.recipeNoteLabel, { color: tone.orange }]}>小备注</Text>
+            <Text style={[styles.recipeNoteText, { color: tone.ink }]}>{detail.note}</Text>
+          </View>
+        ) : null}
         <View style={[styles.cookDiary, { backgroundColor: tone.accent }]}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.settingText, { color: tone.ink }]}>
@@ -5449,6 +5460,16 @@ Object.assign(styles, {
     alignItems: "center",
     justifyContent: "space-between",
   },
+  recipeNoteSticker: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    marginTop: 10,
+    transform: [{ rotate: "-0.4deg" }],
+  },
+  recipeNoteLabel: { fontSize: 12, fontFamily: "ZCOOLKuaiLe", marginBottom: 3 },
+  recipeNoteText: { fontSize: 15, lineHeight: 22, fontFamily: "ZCOOLKuaiLe" },
   cookCountEditor: {
     flexDirection: "row",
     alignItems: "center",
