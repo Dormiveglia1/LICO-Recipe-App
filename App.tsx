@@ -417,7 +417,22 @@ export default function App() {
     [],
   );
   useEffect(() => {
-    if (Platform.OS === "web") return;
+    if (Platform.OS === "web") {
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+      let restingHeight = viewport.height;
+      const updateKeyboardState = () => {
+        const currentHeight = viewport.height;
+        if (currentHeight >= restingHeight - 40) restingHeight = currentHeight;
+        setKeyboardVisible(restingHeight - currentHeight > 140);
+      };
+      viewport.addEventListener("resize", updateKeyboardState);
+      viewport.addEventListener("scroll", updateKeyboardState);
+      return () => {
+        viewport.removeEventListener("resize", updateKeyboardState);
+        viewport.removeEventListener("scroll", updateKeyboardState);
+      };
+    }
     const show = Keyboard.addListener(
       Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
       () => setKeyboardVisible(true),
