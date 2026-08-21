@@ -716,7 +716,10 @@ export default function App() {
   };
   const uploadImage = async (uri: string | undefined, path: string) => {
     if (!uri) return undefined;
-    if (!uri.startsWith("file:")) return path;
+    // Native pickers provide file:/content: URIs; web pickers provide blob:
+    // URIs. All of them are local image data and must be uploaded before the
+    // Storage path is saved. Previously blob: was mistaken for a saved image.
+    if (!/^(?:file|content|blob|data):/i.test(uri)) return path;
     const bytes = await (await fetch(uri)).arrayBuffer();
     const { error } = await supabase.storage
       .from("recipe-images")
