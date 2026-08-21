@@ -360,6 +360,7 @@ export default function App() {
   const [checked, setChecked] = useState<string[]>([]);
   const [dark, setDark] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<
     "未询问" | "已允许" | "未允许"
   >("未询问");
@@ -415,6 +416,21 @@ export default function App() {
     },
     [],
   );
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const show = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKeyboardVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKeyboardVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const createEmptyDraft = () => ({
     name: "",
     category: "主菜",
@@ -4651,7 +4667,7 @@ export default function App() {
             </Pressable>
           )}
         </KeyboardAvoidingView>
-        {!detail && !composer && Nav()}
+        {!detail && !composer && !keyboardVisible && Nav()}
         {Sheet()}
       </SafeAreaView>
     </ImageBackground>
