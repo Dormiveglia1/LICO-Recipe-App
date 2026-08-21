@@ -1620,6 +1620,20 @@ export default function App() {
   };
   const updateNotificationPermission = async () => {
     if (Platform.OS === "web") {
+      const userAgent = typeof navigator === "undefined" ? "" : navigator.userAgent;
+      const standalone =
+        typeof window !== "undefined" &&
+        (window.matchMedia?.("(display-mode: standalone)").matches ||
+          (navigator as Navigator & { standalone?: boolean }).standalone === true);
+      if (/iPad|iPhone|iPod/.test(userAgent) && !standalone) {
+        setNotificationPermission("未允许");
+        setNotificationsEnabled(false);
+        Alert.alert(
+          "先添加到主屏幕",
+          "iPhone 上的网页提醒只能在「添加到主屏幕」后的栗刻网页 App 中授权。Safari 点分享 → 添加到主屏幕，再从桌面打开栗刻。",
+        );
+        return false;
+      }
       if (typeof Notification === "undefined") {
         setNotificationPermission("未允许");
         setNotificationsEnabled(false);
@@ -2457,61 +2471,34 @@ export default function App() {
             fontWeight: "800",
           }}
         >
-          ⌘ 食材 / 口味筛选 {filtersOpen ? "收起" : "展开"}
+          ⌘ 筛选{ingredientFilter || tasteFilter || tagFilter ? " · 已启用" : ""}
         </Text>
       </Pressable>
       {filtersOpen && (
-        <View style={[styles.filterPanel, { backgroundColor: tone.card }]}>
-          <TextInput
-            value={ingredientFilter}
-            onChangeText={setIngredientFilter}
-            placeholder="食材，例如：牛肉"
-            placeholderTextColor={tone.muted}
-            style={[
-              styles.filterInput,
-              { color: tone.ink, borderColor: tone.line },
-            ]}
-          />
-          <TextInput
-            value={tasteFilter}
-            onChangeText={setTasteFilter}
-            placeholder="口味，例如：微辣"
-            placeholderTextColor={tone.muted}
-            style={[
-              styles.filterInput,
-              { color: tone.ink, borderColor: tone.line },
-            ]}
-          />
-          <TextInput
-            value={tagFilter}
-            onChangeText={setTagFilter}
-            placeholder="标签，例如：约会"
-            placeholderTextColor={tone.muted}
-            style={[
-              styles.filterInput,
-              { color: tone.ink, borderColor: tone.line },
-            ]}
-          />
-          <Pressable
-            onPress={() => {
-              setIngredientFilter("");
-              setTasteFilter("");
-              setTagFilter("");
-            }}
+        <Modal visible transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
+          <KeyboardAvoidingView
+            style={styles.filterModalRoot}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
           >
-            <Text
-              style={{
-                color: tone.muted,
-                fontWeight: "700",
-                textAlign: "right",
-              }}
-            >
-              清除筛选
-            </Text>
-          </Pressable>
-          <Text style={[styles.tagLibraryTitle, { color: tone.ink }]}>全家标签收纳盒</Text>
-          <View style={styles.tagLibrary}>{familyTags.length ? familyTags.map((tag, index) => <View key={tag} style={[styles.libraryTag, { backgroundColor: ['#FFF1C9', '#F8D9D3', '#DDE9D4', '#D9E7F5'][index % 4] }]}><Pressable onPress={() => setTagFilter(tag)}><Text style={{ color: tone.ink, fontSize: 12 }}>{tag}</Text></Pressable><Pressable onPress={() => removeFamilyTag(tag)} hitSlop={7}><Text style={{ color: tone.muted, marginLeft: 5 }}>×</Text></Pressable></View>) : <Text style={{ color: tone.muted, fontSize: 12 }}>先在菜谱编辑页添加标签吧。</Text>}</View>
-        </View>
+            <Pressable style={styles.filterBackdrop} onPress={() => setFiltersOpen(false)} />
+            <View style={[styles.filterSheet, { backgroundColor: tone.card }]}> 
+              <View style={styles.filterSheetHeader}>
+                <Text style={[styles.sectionTitle, { color: tone.ink }]}>⌘ 筛选菜谱</Text>
+                <Pressable onPress={() => setFiltersOpen(false)} hitSlop={10}>
+                  <Text style={{ color: tone.orange, fontWeight: "800" }}>完成</Text>
+                </Pressable>
+              </View>
+              <TextInput value={ingredientFilter} onChangeText={setIngredientFilter} placeholder="食材，例如：牛肉" placeholderTextColor={tone.muted} style={[styles.filterInput, { color: tone.ink, borderColor: tone.line }]} />
+              <TextInput value={tasteFilter} onChangeText={setTasteFilter} placeholder="口味，例如：微辣" placeholderTextColor={tone.muted} style={[styles.filterInput, { color: tone.ink, borderColor: tone.line }]} />
+              <TextInput value={tagFilter} onChangeText={setTagFilter} placeholder="标签，例如：约会" placeholderTextColor={tone.muted} style={[styles.filterInput, { color: tone.ink, borderColor: tone.line }]} />
+              <Pressable onPress={() => { setIngredientFilter(""); setTasteFilter(""); setTagFilter(""); }}>
+                <Text style={{ color: tone.muted, fontWeight: "700", textAlign: "right" }}>清除筛选</Text>
+              </Pressable>
+              <Text style={[styles.tagLibraryTitle, { color: tone.ink }]}>全家标签收纳盒</Text>
+              <View style={styles.tagLibrary}>{familyTags.length ? familyTags.map((tag, index) => <View key={tag} style={[styles.libraryTag, { backgroundColor: ['#FFF1C9', '#F8D9D3', '#DDE9D4', '#D9E7F5'][index % 4] }]}><Pressable onPress={() => setTagFilter(tag)}><Text style={{ color: tone.ink, fontSize: 12 }}>{tag}</Text></Pressable><Pressable onPress={() => removeFamilyTag(tag)} hitSlop={7}><Text style={{ color: tone.muted, marginLeft: 5 }}>×</Text></Pressable></View>) : <Text style={{ color: tone.muted, fontSize: 12 }}>先在菜谱编辑页添加标签吧。</Text>}</View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       )}
       <View style={styles.categoryScroller}>
         <ScrollView
@@ -5225,6 +5212,28 @@ Object.assign(styles, {
     transform: [{ rotate: "-1deg" }],
   },
   filterPanel: { borderRadius: 16, padding: 11, gap: 8, marginBottom: 10 },
+  filterModalRoot: { flex: 1, justifyContent: "flex-end" },
+  filterBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(57, 40, 31, 0.26)",
+  },
+  filterSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 18,
+    paddingBottom: 34,
+    gap: 9,
+    shadowColor: "#4B3327",
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: -4 },
+  },
+  filterSheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 3,
+  },
   filterInput: {
     minHeight: 40,
     borderWidth: 1,
