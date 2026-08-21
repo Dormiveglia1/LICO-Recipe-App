@@ -13,6 +13,7 @@ import {
   Animated,
   Image,
   ImageBackground,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   PanResponder,
@@ -667,6 +668,7 @@ export default function App() {
   };
   const saveProfile = async () => {
     if (!session || !familyId) return;
+    Keyboard.dismiss();
     try {
       const avatarPath =
         (await uploadImage(
@@ -695,6 +697,7 @@ export default function App() {
   };
   const saveMemberNote = async () => {
     if (!familyId || !session || !noteTarget) return;
+    Keyboard.dismiss();
     const { error } = await supabase.from("member_notes").upsert({
       family_id: familyId,
       author_id: session.user.id,
@@ -1471,6 +1474,7 @@ export default function App() {
   };
   const saveMenuNote = async (id: RecipeId) => {
     if (!familyId) return;
+    Keyboard.dismiss();
     const note = menuNoteText.trim();
     const { error } = await supabase
       .from("menu_items")
@@ -1792,6 +1796,7 @@ export default function App() {
       );
     if (!familyId || !session)
       return Alert.alert("还没有家庭", "请先完成登录并创建或加入家庭。");
+    Keyboard.dismiss();
     recipeSaveLock.current = true;
     setSavingRecipe(true);
     try {
@@ -1953,6 +1958,7 @@ export default function App() {
     const cookedCount = Number(cookCountText);
     if (!Number.isInteger(cookedCount) || cookedCount < 0)
       return Alert.alert("次数不正确", "请输入 0 或更大的整数。");
+    Keyboard.dismiss();
     const { error } = await supabase
       .from("recipes")
       .update({
@@ -1972,6 +1978,7 @@ export default function App() {
   const leaveReview = async (recipe: Recipe) => {
     const text = reviewText.trim();
     if (!text) return;
+    Keyboard.dismiss();
     const reviews = [
       ...(recipe.reviews || []),
       {
@@ -2102,6 +2109,7 @@ export default function App() {
   };
   const saveFamilyName = async () => {
     if (!familyId) return;
+    Keyboard.dismiss();
     const name = familyName.trim() || "我们的厨房";
     const { error } = await supabase
       .from("families")
@@ -2207,6 +2215,7 @@ export default function App() {
         <Pressable
           key={item}
           onPress={() => {
+            Keyboard.dismiss();
             setTab(item);
             setDetail(null);
             setSettingsOpen(false);
@@ -2705,7 +2714,7 @@ export default function App() {
                         保存
                       </Text>
                     </Pressable>
-                    <Pressable onPress={() => setMenuNoteId(null)}>
+                    <Pressable onPress={() => { Keyboard.dismiss(); setMenuNoteId(null); }}>
                       <Text style={{ color: tone.muted }}>取消</Text>
                     </Pressable>
                   </View>
@@ -3115,7 +3124,7 @@ export default function App() {
             <Pressable onPress={saveFamilyName} style={[styles.roundButton, { backgroundColor: tone.orange }]}>
               <Text style={styles.spinText}>保存</Text>
             </Pressable>
-            <Pressable onPress={() => setFamilyEditing(false)} style={[styles.roundButton, { backgroundColor: tone.accent }]}>
+            <Pressable onPress={() => { Keyboard.dismiss(); setFamilyEditing(false); }} style={[styles.roundButton, { backgroundColor: tone.accent }]}>
               <Text style={{ color: tone.ink }}>取消</Text>
             </Pressable>
           </View>
@@ -3208,7 +3217,7 @@ export default function App() {
               <Text style={styles.spinText}>保存</Text>
             </Pressable>
             <Pressable
-              onPress={() => setProfileEditing(false)}
+              onPress={() => { Keyboard.dismiss(); setProfileEditing(false); }}
               style={[styles.roundButton, { backgroundColor: tone.accent }]}
             >
               <Text style={{ color: tone.ink }}>取消</Text>
@@ -3434,7 +3443,7 @@ export default function App() {
                       <Text style={styles.spinText}>保存</Text>
                     </Pressable>
                     <Pressable
-                      onPress={() => setNoteTarget(null)}
+                      onPress={() => { Keyboard.dismiss(); setNoteTarget(null); }}
                       style={[
                         styles.roundButton,
                         { backgroundColor: tone.accent },
@@ -3816,6 +3825,7 @@ export default function App() {
                 <Pressable
                   onPress={() => {
                     setCookCountText(String(detail.cookedCount || 0));
+                    Keyboard.dismiss();
                     setCookCountEditing(false);
                   }}
                 >
@@ -4632,7 +4642,7 @@ export default function App() {
           )}
           {profileEditing && tab === "我的" && !settingsOpen && (
             <Pressable
-              onPress={() => setProfileEditing(false)}
+              onPress={() => { Keyboard.dismiss(); setProfileEditing(false); }}
               style={[styles.profileCancel, { backgroundColor: tone.card }]}
             >
               <Text style={{ color: tone.muted, fontWeight: "800" }}>
@@ -4640,8 +4650,8 @@ export default function App() {
               </Text>
             </Pressable>
           )}
-          {!detail && !composer && Nav()}
         </KeyboardAvoidingView>
+        {!detail && !composer && Nav()}
         {Sheet()}
       </SafeAreaView>
     </ImageBackground>
