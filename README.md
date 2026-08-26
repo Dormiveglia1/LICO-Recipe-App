@@ -4,7 +4,10 @@
 
 ## 产品截图
 
-![栗刻 LICO 登录页](assets/screenshots/login.png)
+<p align="center">
+  <img src="assets/screenshots/recipe-book.jpg" alt="栗刻 LICO 菜谱本" width="320" />
+  <img src="assets/screenshots/menu-shopping.jpg" alt="栗刻 LICO 菜单与购物清单" width="320" />
+</p>
 
 ## 功能
 
