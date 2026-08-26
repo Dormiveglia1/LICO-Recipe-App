@@ -29,10 +29,22 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
+*.keystore
+google-services.json
+GoogleService-Info.plist
+credentials.json
 
 # local env files
 .env
-.env*.local
+.env.*
+!.env.example
+
+# Local tool preferences
+.claude/settings.local.json
+
+# Test output and logs
+coverage/
+*.log
 
 # typescript
 *.tsbuildinfo
